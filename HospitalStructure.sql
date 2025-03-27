@@ -113,6 +113,8 @@ CREATE TABLE Surgery
 	(PatientID		VARCHAR(15),
     DoctorID		VARCHAR(15),
     StartTime		DATETIME,
+    EndTime			DATETIME,
+    RoomNumber		VARCHAR(15),
     PRIMARY KEY(PatientID, StartTime),
     FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
     FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID)
@@ -148,6 +150,7 @@ UNION ALL
 SELECT 'Hospitalisation', StartTime, EndTime, RoomNumber
 FROM Hospitalisation WHERE PatientID = patID;
 
+
 # Trigger that listens to insertions on Hospitalization, updates the occupancy on successful insertions and 
 DROP TRIGGER IF EXISTS Before_Hospitalisation_Insert;
 DELIMITER //
@@ -169,6 +172,47 @@ BEGIN
     -- Check hospitalization time conditions
     IF NEW.StartTime <= NOW() AND NEW.EndTime > NOW() THEN
         -- Current hospitalization, check room capacity
+        IF room_occupancy >= room_capacity THEN
+            SET error_message = 'Room ';
+            SET error_message = CONCAT(error_message, NEW.RoomNumber, ' is at full capacity (Capacity: ');
+            SET error_message = CONCAT(error_message, room_capacity, ', Occupancy: ', room_occupancy, ')');
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = error_message;
+        ELSE
+            -- Update occupancy count
+            UPDATE Room
+            SET Occupancy = Occupancy + 1
+            WHERE RoomNumber = NEW.RoomNumber;
+        END IF;
+    END IF;
+END //
+
+DELIMITER ;
+
+
+
+
+# Trigger that listens to insertions on Hospitalization, updates the occupancy on successful insertions and 
+DROP TRIGGER IF EXISTS Before_Surgery_Insert;
+DELIMITER //
+
+CREATE TRIGGER Before_Surgery_Insert
+BEFORE INSERT ON Surgery
+FOR EACH ROW
+BEGIN
+    DECLARE room_capacity INT;
+    DECLARE room_occupancy INT;
+    DECLARE error_message VARCHAR(255);
+
+    
+    -- Get current capacity and occupancy of the room
+    SELECT Capacity, Occupancy INTO room_capacity, room_occupancy
+    FROM Room
+    WHERE RoomNumber = NEW.RoomNumber;
+    
+    -- Check surgery time conditions
+    IF NEW.StartTime <= NOW() AND NEW.EndTime = NULL THEN
+        -- Current surgery, check room capacity
         IF room_occupancy >= room_capacity THEN
             SET error_message = 'Room ';
             SET error_message = CONCAT(error_message, NEW.RoomNumber, ' is at full capacity (Capacity: ');
