@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS Surgeon;
 DROP TABLE IF EXISTS Surgery;
 DROP TABLE IF EXISTS Wing;
 
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 CREATE TABLE Wing
@@ -117,7 +118,7 @@ CREATE TABLE Surgery
     FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID)
     );
    
-DROP FUNCTION IF EXISTS GetTitle;
+DROP FUNCTION IF EXISTS GetTitle; # Function that returns the title of a employee id
 DELIMITER //
 CREATE FUNCTION GetTitle(vID VARCHAR(15)) RETURNS VARCHAR(15)
 BEGIN
@@ -135,4 +136,54 @@ CREATE VIEW Personel AS
 NATURAL LEFT OUTER JOIN Surgeon) 
 UNION 
 (SELECT NurseId,NurseName AS employeename,Salary, GetTitle(NurseID) as Title FROM Nurse ) ORDER BY Title ASC, employeename ASC ; 
+
+
+
+# Procedure that given a patient id returns their appointment and hospitalization history
+DROP PROCEDURE IF EXISTS GetPatientHistory;
+CREATE PROCEDURE GetPatientHistory(IN patID VARCHAR(15))
+SELECT 'Appointment' AS Type, StartTime, EndTime, RoomNumber
+FROM Appointment WHERE PatientID = patID
+UNION ALL
+SELECT 'Hospitalisation', StartTime, EndTime, RoomNumber
+FROM Hospitalisation WHERE PatientID = patID;
+
+# Trigger
+DROP TRIGGER IF EXISTS Before_Hospitalisation_Insert;
+DELIMITER //
+
+CREATE TRIGGER Before_Hospitalisation_Insert
+BEFORE INSERT ON Hospitalisation
+FOR EACH ROW
+BEGIN
+    DECLARE room_capacity INT;
+    DECLARE room_occupancy INT;
+    DECLARE error_message VARCHAR(255);
+    
+    -- Get current capacity and occupancy of the room
+    SELECT Capacity, Occupancy INTO room_capacity, room_occupancy
+    FROM Room
+    WHERE RoomNumber = NEW.RoomNumber;
+    
+    -- Check if there is space available
+    IF room_occupancy >= room_capacity THEN
+        SET error_message = 'Room ';
+        SET error_message = CONCAT(error_message, NEW.RoomNumber, ' is at full capacity (Capacity: ');
+        SET error_message = CONCAT(error_message, room_capacity, ', Occupancy: ', room_occupancy, ')');
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = error_message;
+    ELSE
+        -- Update occupancy count
+        UPDATE Room
+        SET Occupancy = Occupancy + 1
+        WHERE RoomNumber = NEW.RoomNumber;
+    END IF;
+END //
+
+DELIMITER ;
+
+
+
+DELIMITER ;
+
     
