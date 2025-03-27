@@ -255,7 +255,7 @@ INSERT INTO Hospitalisation (PatientID, StartTime, EndTime, RoomNumber,DeptName)
 
 
 -- Populate surgery
-INSERT INTO Surgery (PatientID, DoctorID, StartTime) VALUES
+INSERT INTO Surgery (PatientID, DoctorID, StartTime,Endtime,RoomNumber,DeptName) VALUES
 ('P001', 'D001', '2025-03-01 09:00:00','2025-03-01 09:00:32','705','Emergency'),
 ('P003', 'D003', '2025-03-12 10:00:00','2025-03-12 17:00:27','705','Emergency'),
 ('P004', 'D004', '2025-03-17 14:00:00','2025-03-17 18:00:00','703','Emergency'),

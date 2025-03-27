@@ -105,6 +105,7 @@ CREATE TABLE Hospitalisation
     StartTime		DATETIME,
     EndTime			DATETIME,
     RoomNumber		VARCHAR(15),
+    DeptName 		VARCHAR(15),
     PRIMARY KEY(PatientID, StartTime),
     FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
     FOREIGN KEY(RoomNumber) REFERENCES Room(RoomNumber)
@@ -258,17 +259,44 @@ UPDATE Doctor SET Salary =
     ELSE Salary + 36000
     END;
 
-
+DROP FUNCTION IF EXISTS GetOccupancy;
 DELIMITER //
-CREATE FUNCTION GetOccupancy (RoomNo VARCHAR(3), DName VARCHAR(15), RoomType ENUM("Office", "Surgery room", "Ward")) RETURNS INTEGER
+
+CREATE FUNCTION GetOccupancy (
+    RoomNo VARCHAR(15), 
+    DName VARCHAR(15), 
+    RoomType VARCHAR(15)
+) RETURNS INTEGER 
+DETERMINISTIC  -- Add this to indicate consistent results
 BEGIN
-IF RoomType = "Office" THEN RETURN (Select Count(*) FROM Doctor where DeptName = DName and RoomNumber = RoomNo);
-ELSEIF RoomType = "Surgery room" THEN RETURN (SELECT COUNT(*) From Surgery Where DeptName = DName and RoomNumber=RoomNo and StartTime<Now() and EndTime>Now());
-ELSE Return (SELECT COUNT(*) FROM Hospitalition WHERE DeptName = DName and RoomNumber=RoomNo and StartTime<Now() and EndTime>Now());
-END IF;
+    DECLARE occupancy_count INT;
+
+    IF RoomType = 'Office' THEN 
+        SELECT COUNT(*) INTO occupancy_count 
+        FROM Doctor 
+        WHERE DeptName = DName AND RoomNumber = RoomNo;
+    
+    ELSEIF RoomType = 'Surgery room' THEN 
+        SELECT COUNT(*) INTO occupancy_count 
+        FROM Surgery 
+        WHERE DeptName = DName AND RoomNumber = RoomNo 
+              AND StartTime < NOW() AND EndTime > NOW();
+    ELSEIF RoomType = 'Ward' Then
+        SELECT COUNT(*) INTO occupancy_count 
+        FROM Hospitalisation 
+        WHERE DeptName = DName AND RoomNumber = RoomNo 
+              AND StartTime < NOW() AND EndTime > NOW();
+	ELSE  
+          SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = "FAILED TO GET OCCUPANCY";
+	END IF;
+    RETURN occupancy_count;
+ 
 END//
+
 DELIMITER ;
 DELIMITER //
+DROP EVENT IF EXISTS RefreshOccupancy;
 CREATE EVENT RefreshOccupancy 
 ON SCHEDULE EVERY 1 hour
 DO 
@@ -296,3 +324,9 @@ FROM (
 ) AS AllStaff
 GROUP BY DeptName
 ORDER BY SUM(Salary) DESC;
+
+SELECT (GetOccupancy('701', 'Emergency', 'Ward')) as Occupancy FROM Room;
+
+
+SELECT RoomNumber, DeptName, RoomType, GetOccupancy(RoomNumber,DeptName,RoomType) AS occupancy FROM Room;
+SELECT * FROM ROOM;
