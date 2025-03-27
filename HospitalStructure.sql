@@ -198,10 +198,10 @@ BEGIN
 END//
 DELIMITER ;
 
---SELECT * FROM Appointment;
---SELECT * FROM Doctor;
+#SELECT * FROM Appointment;
+#SELECT * FROM Doctor;
 
---DELETE FROM Doctor WHERE DoctorID = 'D001';
+#DELETE FROM Doctor WHERE DoctorID = 'D001';
 
 
 # Trigger that listens to insertions on Hospitalization, updates the occupancy on successful insertions and 
