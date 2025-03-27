@@ -22,22 +22,22 @@ INSERT INTO Department (DeptName, WingName, Budget, HeadDoctor) VALUES
 -- Populate Room
 INSERT INTO Room (RoomNumber, DeptName, RoomType, Capacity, Occupancy) VALUES
 ('101', 'Cardiology', 'Office', 1, 1),
-('102', 'Neurology', 'Ward', 4, 2),
+('102', 'Neurology', 'Ward', 4, 0),
 ('201', 'Neurology', 'Surgery room', 1, 1),
-('202', 'Neurology', 'Ward', 6, 2),
+('202', 'Neurology', 'Ward', 6, 0),
 ('301', 'Orthopedics', 'Office', 1, 1),
-('302', 'Orthopedics', 'Ward', 5, 3),
+('302', 'Orthopedics', 'Ward', 5, 0),
 ('401', 'General Surgery', 'Surgery room', 1, 1),
-('402', 'General Surgery', 'Ward', 4, 2),
-('501', 'Pediatrics', 'Ward', 6, 3),
+('402', 'General Surgery', 'Ward', 4, 0),
+('501', 'Pediatrics', 'Ward', 6, 0),
 ('502', 'Pediatrics', 'Office', 1, 1),
 ('601', 'Ophthalmology', 'Surgery room', 1, 1),
-('602', 'Orthopedics', 'Ward', 4, 2),
-('701', 'Emergency', 'Ward', 4, 2),
-('702', 'Emergency', 'Ward', 10, 2),
+('602', 'Orthopedics', 'Ward', 4, 0),
+('701', 'Emergency', 'Ward', 4, 0),
+('702', 'Emergency', 'Ward', 10, 0),
 ('801', 'Psychiatry', 'Office', 1, 1),
 ('804', 'Psychiatry', 'Ward', 1, 0),
-('104', 'Cardiology', 'Ward', 6, 2);
+('104', 'Cardiology', 'Ward', 6, 0);
 
 -- Populate Doctor
 INSERT INTO Doctor (DoctorID, DoctorName, DeptName, Seniority, RoomNumber, Salary) VALUES
