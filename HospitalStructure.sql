@@ -116,6 +116,7 @@ CREATE TABLE Surgery
     StartTime		DATETIME,
     EndTime			DATETIME,
     RoomNumber		VARCHAR(15),
+    DeptName 		VARCHAR(15),
     PRIMARY KEY(PatientID, StartTime),
     FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
     FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL
@@ -203,6 +204,11 @@ DELIMITER ;
 DROP TRIGGER IF EXISTS Before_Surgery_Insert;
 DELIMITER //
 
+
+
+
+
+
 CREATE TRIGGER Before_Surgery_Insert
 BEFORE INSERT ON Surgery
 FOR EACH ROW
@@ -218,7 +224,12 @@ BEGIN
     WHERE RoomNumber = NEW.RoomNumber;
     
     -- Check surgery time conditions
-    IF NEW.StartTime <= NOW() AND NEW.EndTime = NULL THEN
+    IF NEW.StartTime >= NEW.EndTime THEN 
+		SET error_message = 'Invalid Time Period';
+        SIGNAL SQLSTATE '45000'
+		SET MESSAGE_TEXT = error_message;
+	ELSEIF 
+		NEW.StartTime <= NOW() AND NEW.EndTime = NULL THEN
         -- Current surgery, check room capacity
         IF room_occupancy >= room_capacity THEN
             SET error_message = 'Room ';
@@ -246,3 +257,42 @@ UPDATE Doctor SET Salary =
     THEN Salary + 84000
     ELSE Salary + 36000
     END;
+
+
+DELIMITER //
+CREATE FUNCTION GetOccupancy (RoomNo VARCHAR(3), DName VARCHAR(15), RoomType ENUM("Office", "Surgery room", "Ward")) RETURNS INTEGER
+BEGIN
+IF RoomType = "Office" THEN RETURN (Select Count(*) FROM Doctor where DeptName = DName and RoomNumber = RoomNo);
+ELSEIF RoomType = "Surgery room" THEN RETURN (SELECT COUNT(*) From Surgery Where DeptName = DName and RoomNumber=RoomNo and StartTime<Now() and EndTime>Now());
+ELSE Return (SELECT COUNT(*) FROM Hospitalition WHERE DeptName = DName and RoomNumber=RoomNo and StartTime<Now() and EndTime>Now());
+END IF;
+END//
+DELIMITER ;
+DELIMITER //
+CREATE EVENT RefreshOccupancy 
+ON SCHEDULE EVERY 1 hour
+DO 
+BEGIN
+UPDATE ROOM 
+SET Occupancy =GetOccupancy(RoomNumber,DeptName,RoomType);
+END//
+DELIMITER ;
+
+SELECT D.DoctorName, COUNT(*) AS SurgeryCount
+FROM Surgery S
+JOIN Doctor D ON S.DoctorID = D.DoctorID
+GROUP BY D.DoctorName;
+
+SELECT DeptName, COUNT(*) AS TotalNurses,
+SUM(CASE WHEN CanMakeCoffee THEN 1 ELSE 0 END) AS CoffeeMakers
+FROM Nurse
+GROUP BY DeptName;
+
+SELECT DeptName, SUM(Salary) AS "Total Salaries"
+FROM (
+    SELECT DeptName, Salary FROM Doctor
+    UNION
+    SELECT DeptName, Salary FROM Nurse
+) AS AllStaff
+GROUP BY DeptName
+ORDER BY SUM(Salary) DESC;
