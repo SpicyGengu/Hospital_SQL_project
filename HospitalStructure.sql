@@ -1,6 +1,7 @@
 #CREATE DATABASE HospitalDB;
 USE HospitalDB;
 SET FOREIGN_KEY_CHECKS = 0;
+SET SQL_SAFE_UPDATES = 0;
 
 DROP TABLE IF EXISTS Appointment;
 DROP TABLE IF EXISTS Department;
@@ -198,12 +199,6 @@ BEGIN
 END//
 DELIMITER ;
 
-#SELECT * FROM Appointment;
-#SELECT * FROM Doctor;
-
-#DELETE FROM Doctor WHERE DoctorID = 'D001';
-
-
 # Trigger that listens to insertions on Hospitalization, updates the occupancy on successful insertions and 
 DROP TRIGGER IF EXISTS Before_Surgery_Insert;
 DELIMITER //
@@ -242,3 +237,12 @@ END //
 
 DELIMITER ;
 
+#SELECT * FROM Appointment;
+#SELECT * FROM Doctor;
+DELETE FROM Doctor WHERE Seniority < 2013;
+UPDATE Doctor SET Salary =
+	CASE 
+    WHEN Seniority <= 2017
+    THEN Salary + 84000
+    ELSE Salary + 36000
+    END;
