@@ -83,7 +83,7 @@ CREATE TABLE Patient
     PhoneNumber		VARCHAR(17), #So North korean people can also be patients
     
     PRIMARY KEY(PatientID),
-    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID)
+    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL
     );
 
 CREATE TABLE Appointment
@@ -95,7 +95,7 @@ CREATE TABLE Appointment
     DeptName		VARCHAR(15),
     PRIMARY KEY(PatientID,StartTime),
     FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
-    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID),
+    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL,
     FOREIGN KEY(RoomNumber) REFERENCES Room(RoomNumber) #Do we need to include deptname in the structure?
     );
 
@@ -115,7 +115,7 @@ CREATE TABLE Surgery
     StartTime		DATETIME,
     PRIMARY KEY(PatientID, StartTime),
     FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
-    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID)
+    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL
     );
    
 DROP FUNCTION IF EXISTS GetTitle; # Function that returns the title of a employee id
@@ -135,9 +135,8 @@ CREATE VIEW Personel AS
 (SELECT DoctorID,DoctorName AS employeename ,Salary, GetTitle(DoctorID) as Title FROM Doctor 
 NATURAL LEFT OUTER JOIN Surgeon) 
 UNION 
+
 (SELECT NurseId,NurseName AS employeename,Salary, GetTitle(NurseID) as Title FROM Nurse ) ORDER BY Title ASC, employeename ASC ; 
-
-
 
 # Procedure that given a patient id returns their appointment and hospitalization history
 DROP PROCEDURE IF EXISTS GetPatientHistory;
@@ -186,3 +185,17 @@ END //
 
 DELIMITER ;
 
+DELIMITER //
+CREATE TRIGGER delete_surgen_after_doctor_delete
+BEFORE DELETE ON Doctor
+FOR EACH ROW
+BEGIN
+    DELETE FROM Surgeon WHERE DoctorID = OLD.DoctorID;
+    DELETE FROM Appointment WHERE (DoctorID = OLD.DoctorID AND StartTime > NOW());
+END//
+DELIMITER ;
+
+SELECT * FROM Appointment;
+SELECT * FROM Doctor;
+
+DELETE FROM Doctor WHERE DoctorID = 'D001';
