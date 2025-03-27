@@ -269,3 +269,6 @@ INSERT INTO Surgery (PatientID, DoctorID, StartTime) VALUES
 ('P023', 'D002', '2025-05-25 09:00:00'),
 ('P025', 'D008', '2025-06-01 16:00:00');
 
+
+SELECT * FROM Room
+
