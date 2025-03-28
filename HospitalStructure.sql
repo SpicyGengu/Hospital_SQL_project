@@ -52,7 +52,7 @@ CREATE TABLE Doctor
     Salary			INT,
     PRIMARY KEY(DoctorID),
     FOREIGN KEY(DeptName) REFERENCES Department(DeptName),
-    FOREIGN KEY(RoomNumber) REFERENCES Room(RoomNumber)
+    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
 	);
 
 CREATE TABLE Nurse
@@ -82,7 +82,6 @@ CREATE TABLE Patient
     Birthday		DATE,
 	DoctorID		VARCHAR(15),
     PhoneNumber		VARCHAR(17), #So North korean people can also be patients
-    
     PRIMARY KEY(PatientID),
     FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL
     );
@@ -97,7 +96,7 @@ CREATE TABLE Appointment
     PRIMARY KEY(PatientID,StartTime),
     FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
     FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL,
-    FOREIGN KEY(RoomNumber) REFERENCES Room(RoomNumber) #Do we need to include deptname in the structure?
+    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
     );
 
 CREATE TABLE Hospitalisation
@@ -108,7 +107,7 @@ CREATE TABLE Hospitalisation
     DeptName 		VARCHAR(15),
     PRIMARY KEY(PatientID, StartTime),
     FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
-    FOREIGN KEY(RoomNumber) REFERENCES Room(RoomNumber)
+    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
     );
 
 CREATE TABLE Surgery
@@ -120,7 +119,8 @@ CREATE TABLE Surgery
     DeptName 		VARCHAR(15),
     PRIMARY KEY(PatientID, StartTime),
     FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
-    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL
+    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL,
+    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
     );
    
 DROP FUNCTION IF EXISTS GetTitle; # Function that returns the title of a employee id
@@ -204,11 +204,6 @@ DELIMITER ;
 # Trigger that listens to insertions on Hospitalization, updates the occupancy on successful insertions and 
 DROP TRIGGER IF EXISTS Before_Surgery_Insert;
 DELIMITER //
-
-
-
-
-
 
 CREATE TRIGGER Before_Surgery_Insert
 BEFORE INSERT ON Surgery
