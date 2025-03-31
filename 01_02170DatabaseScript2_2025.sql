@@ -98,7 +98,7 @@ END //
 
 DELIMITER ;
 
-DELETE TRIGGER IF EXISTS delete_surgeon_after_doctor_delete
+DROP TRIGGER IF EXISTS delete_surgeon_after_doctor_delete
 DELIMITER //
 CREATE TRIGGER delete_surgeon_after_doctor_delete
 BEFORE DELETE ON Doctor
