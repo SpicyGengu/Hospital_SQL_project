@@ -1,129 +1,34 @@
-#CREATE DATABASE HospitalDB;
 USE HospitalDB;
-SET FOREIGN_KEY_CHECKS = 0;
-SET SQL_SAFE_UPDATES = 0;
+## START DATA QUERIES ##
 
-DROP TABLE IF EXISTS Appointment;
-DROP TABLE IF EXISTS Department;
-DROP TABLE IF EXISTS Doctor;
-DROP TABLE IF EXISTS Hospitalisation;
-DROP TABLE IF EXISTS Nurse;
-DROP TABLE IF EXISTS Patient;
-DROP TABLE IF EXISTS Room;
-DROP TABLE IF EXISTS Surgeon;
-DROP TABLE IF EXISTS Surgery;
-DROP TABLE IF EXISTS Wing;
+# Query 1
+SELECT D.DoctorName, COUNT(*) AS SurgeryCount
+FROM Surgery S
+JOIN Doctor D ON S.DoctorID = D.DoctorID
+GROUP BY D.DoctorName;
 
+# Query 2
+SELECT DeptName, COUNT(*) AS TotalNurses,
+SUM(CASE WHEN CanMakeCoffee THEN 1 ELSE 0 END) AS CoffeeMakers
+FROM Nurse
+GROUP BY DeptName;
 
-SET FOREIGN_KEY_CHECKS = 1;
+# Query 3
+SELECT DeptName, SUM(Salary) AS "Total Salaries"
+FROM (
+SELECT DeptName, Salary FROM Doctor
+UNION
+SELECT DeptName, Salary FROM Nurse
+) AS AllStaff
+GROUP BY DeptName
+ORDER BY SUM(Salary) DESC;
 
-CREATE TABLE Wing
-	(WingName		VARCHAR(15),
-    PRIMARY KEY(WingName)
-	);
-    
-    
-CREATE TABLE Department
-	(DeptName		VARCHAR(15),
-    WingName		VARCHAR(15),
-    Budget 			INT,
-    HeadDoctor		VARCHAR(20) NOT NULL,
-    PRIMARY KEY(DeptName),
-    FOREIGN KEY(WingName) REFERENCES Wing(WingName)
-    
-	);
-    
-CREATE TABLE Room
-	(RoomNumber		VARCHAR(15),
-    DeptName		VARCHAR(15),
-    RoomType		ENUM("Office", "Surgery room", "Ward"),
-    Capacity		INT,
-    Occupancy		INT,
-    PRIMARY KEY(RoomNumber, DeptName),
-    FOREIGN KEY(DeptName) REFERENCES Department(DeptName)
-	);
-    
-CREATE TABLE Doctor
-	(DoctorID		VARCHAR(15),
-    DoctorName		VARCHAR(30),
-    DeptName		VARCHAR(15),
-    Seniority		YEAR, #maybe date
-    RoomNumber		VARCHAR(15),
-    Salary			INT,
-    PRIMARY KEY(DoctorID),
-    FOREIGN KEY(DeptName) REFERENCES Department(DeptName),
-    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
-	);
+## END DATA QUERIES ##
 
-CREATE TABLE Nurse
-	(NurseID		VARCHAR(15),
-    NurseName		VARCHAR(30),
-    DeptName		VARCHAR(15),
-    CanMakeCoffee	BOOL,
-    Salary			INT,
-    PRIMARY KEY(NurseID),
-    FOREIGN KEY(DeptName) REFERENCES Department(DeptName)
-	);
-    
-CREATE TABLE Surgeon
-	(DoctorID		VARCHAR(15),
-    DeptName		VARCHAR(15),
-    Experience		YEAR, #maybe date
-    Salary			INT, #Remove?
-    Specialisation	VARCHAR(20),
-    PRIMARY KEY(DoctorID),
-    FOREIGN KEY(DeptName) REFERENCES Department(DeptName),
-    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID)
-	);
-    
-CREATE TABLE Patient
-	(PatientID		VARCHAR(15),
-    PatientName		VARCHAR(30),
-    Birthday		DATE,
-	DoctorID		VARCHAR(15),
-    PhoneNumber		VARCHAR(17), #So North korean people can also be patients
-    PRIMARY KEY(PatientID),
-    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL
-    );
+## START FUNCTIONS, PROCEDURES, TRIGGERS & EVENTS ##
 
-CREATE TABLE Appointment
-	(PatientID		VARCHAR(15),
-    DoctorID		VARCHAR(15),
-    StartTime		DATETIME,
-    EndTime			DATETIME,
-    RoomNumber		VARCHAR(15),
-    DeptName		VARCHAR(15),
-    PRIMARY KEY(PatientID,StartTime),
-    FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
-    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL,
-    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
-    );
-
-CREATE TABLE Hospitalisation
-	(PatientID		VARCHAR(15),
-    StartTime		DATETIME,
-    EndTime			DATETIME,
-    RoomNumber		VARCHAR(15),
-    DeptName 		VARCHAR(15),
-    PRIMARY KEY(PatientID, StartTime),
-    FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
-    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
-    );
-
-CREATE TABLE Surgery
-	(PatientID		VARCHAR(15),
-    DoctorID		VARCHAR(15),
-    StartTime		DATETIME,
-    EndTime			DATETIME,
-    RoomNumber		VARCHAR(15),
-    DeptName 		VARCHAR(15),
-    PRIMARY KEY(PatientID, StartTime),
-    FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
-    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL,
-    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
-    );
-   
-DROP FUNCTION IF EXISTS GetTitle; # Function that returns the title of a employee id
+# Function that returns the title of a employee id
+DROP FUNCTION IF EXISTS GetTitle; 
 DELIMITER //
 CREATE FUNCTION GetTitle(vID VARCHAR(15)) RETURNS VARCHAR(15)
 BEGIN
@@ -135,6 +40,8 @@ BEGIN
 END //
 DELIMITER ;
 
+
+# Personel View
 DROP VIEW IF EXISTS Personel; 
 CREATE VIEW Personel AS 
 (SELECT DoctorID,DoctorName AS employeename ,Salary, GetTitle(DoctorID) as Title FROM Doctor 
@@ -191,8 +98,9 @@ END //
 
 DELIMITER ;
 
+DELETE TRIGGER IF EXISTS delete_surgeon_after_doctor_delete
 DELIMITER //
-CREATE TRIGGER delete_surgen_after_doctor_delete
+CREATE TRIGGER delete_surgeon_after_doctor_delete
 BEFORE DELETE ON Doctor
 FOR EACH ROW
 BEGIN
@@ -244,16 +152,7 @@ END //
 
 DELIMITER ;
 
-#SELECT * FROM Appointment;
-#SELECT * FROM Doctor;
-DELETE FROM Doctor WHERE Seniority < 2013;
-UPDATE Doctor SET Salary =
-	CASE 
-    WHEN Seniority <= 2017
-    THEN Salary + 84000
-    ELSE Salary + 36000
-    END;
-
+# Function that gets occupancy for all rooms
 DROP FUNCTION IF EXISTS GetOccupancy;
 DELIMITER //
 
@@ -290,8 +189,8 @@ BEGIN
 END//
 
 DELIMITER ;
-DELIMITER //
 DROP EVENT IF EXISTS RefreshOccupancy;
+DELIMITER //
 CREATE EVENT RefreshOccupancy 
 ON SCHEDULE EVERY 1 hour
 DO 
@@ -300,28 +199,15 @@ UPDATE ROOM
 SET Occupancy =GetOccupancy(RoomNumber,DeptName,RoomType);
 END//
 DELIMITER ;
+## END FUNCTIONS, PROCEDURES, TRIGGERS & EVENTS ##
 
-SELECT D.DoctorName, COUNT(*) AS SurgeryCount
-FROM Surgery S
-JOIN Doctor D ON S.DoctorID = D.DoctorID
-GROUP BY D.DoctorName;
+## START UPDATE / DELETE STATEMENTS ##
 
-SELECT DeptName, COUNT(*) AS TotalNurses,
-SUM(CASE WHEN CanMakeCoffee THEN 1 ELSE 0 END) AS CoffeeMakers
-FROM Nurse
-GROUP BY DeptName;
-
-SELECT DeptName, SUM(Salary) AS "Total Salaries"
-FROM (
-    SELECT DeptName, Salary FROM Doctor
-    UNION
-    SELECT DeptName, Salary FROM Nurse
-) AS AllStaff
-GROUP BY DeptName
-ORDER BY SUM(Salary) DESC;
-
-SELECT (GetOccupancy('701', 'Emergency', 'Ward')) as Occupancy FROM Room;
-
-
-SELECT RoomNumber, DeptName, RoomType, GetOccupancy(RoomNumber,DeptName,RoomType) AS occupancy FROM Room;
-SELECT * FROM ROOM;
+DELETE FROM Doctor WHERE Seniority < 2013;
+UPDATE Doctor SET Salary =
+	CASE 
+    WHEN Seniority <= 2017
+    THEN Salary + 84000
+    ELSE Salary + 36000
+    END;
+## END UPDATE / DELETE STATEMENTS ##

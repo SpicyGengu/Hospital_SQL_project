@@ -1,4 +1,130 @@
+DROP DATABASE IF EXISTS HospitalDB;
+CREATE DATABASE HospitalDB;
 USE HospitalDB;
+SET FOREIGN_KEY_CHECKS = 0;
+SET SQL_SAFE_UPDATES = 0;
+
+DROP TABLE IF EXISTS Appointment;
+DROP TABLE IF EXISTS Department;
+DROP TABLE IF EXISTS Doctor;
+DROP TABLE IF EXISTS Hospitalisation;
+DROP TABLE IF EXISTS Nurse;
+DROP TABLE IF EXISTS Patient;
+DROP TABLE IF EXISTS Room;
+DROP TABLE IF EXISTS Surgeon;
+DROP TABLE IF EXISTS Surgery;
+DROP TABLE IF EXISTS Wing;
+
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+CREATE TABLE Wing
+	(WingName		VARCHAR(15),
+    PRIMARY KEY(WingName)
+	);
+    
+    
+CREATE TABLE Department
+	(DeptName		VARCHAR(15),
+    WingName		VARCHAR(15),
+    Budget 			INT,
+    HeadDoctor		VARCHAR(20) NOT NULL,
+    PRIMARY KEY(DeptName),
+    FOREIGN KEY(WingName) REFERENCES Wing(WingName)
+    
+	);
+    
+CREATE TABLE Room
+	(RoomNumber		VARCHAR(15),
+    DeptName		VARCHAR(15),
+    RoomType		ENUM("Office", "Surgery room", "Ward"),
+    Capacity		INT,
+    Occupancy		INT,
+    PRIMARY KEY(RoomNumber, DeptName),
+    FOREIGN KEY(DeptName) REFERENCES Department(DeptName)
+	);
+    
+CREATE TABLE Doctor
+	(DoctorID		VARCHAR(15),
+    DoctorName		VARCHAR(30),
+    DeptName		VARCHAR(15),
+    Seniority		YEAR, #maybe date
+    RoomNumber		VARCHAR(15),
+    Salary			INT,
+    PRIMARY KEY(DoctorID),
+    FOREIGN KEY(DeptName) REFERENCES Department(DeptName),
+    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
+	);
+
+CREATE TABLE Nurse
+	(NurseID		VARCHAR(15),
+    NurseName		VARCHAR(30),
+    DeptName		VARCHAR(15),
+    CanMakeCoffee	BOOL,
+    Salary			INT,
+    PRIMARY KEY(NurseID),
+    FOREIGN KEY(DeptName) REFERENCES Department(DeptName)
+	);
+    
+CREATE TABLE Surgeon
+	(DoctorID		VARCHAR(15),
+    DeptName		VARCHAR(15),
+    Experience		YEAR, #maybe date
+    Salary			INT, #Remove?
+    Specialisation	VARCHAR(20),
+    PRIMARY KEY(DoctorID),
+    FOREIGN KEY(DeptName) REFERENCES Department(DeptName),
+    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID)
+	);
+    
+CREATE TABLE Patient
+	(PatientID		VARCHAR(15),
+    PatientName		VARCHAR(30),
+    Birthday		DATE,
+	DoctorID		VARCHAR(15),
+    PhoneNumber		VARCHAR(17), #So North korean people can also be patients
+    PRIMARY KEY(PatientID),
+    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL
+    );
+
+CREATE TABLE Appointment
+	(PatientID		VARCHAR(15),
+    DoctorID		VARCHAR(15),
+    StartTime		DATETIME,
+    EndTime			DATETIME,
+    RoomNumber		VARCHAR(15),
+    DeptName		VARCHAR(15),
+    PRIMARY KEY(PatientID,StartTime),
+    FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
+    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL,
+    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
+    );
+
+CREATE TABLE Hospitalisation
+	(PatientID		VARCHAR(15),
+    StartTime		DATETIME,
+    EndTime			DATETIME,
+    RoomNumber		VARCHAR(15),
+    DeptName 		VARCHAR(15),
+    PRIMARY KEY(PatientID, StartTime),
+    FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
+    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
+    );
+
+CREATE TABLE Surgery
+	(PatientID		VARCHAR(15),
+    DoctorID		VARCHAR(15),
+    StartTime		DATETIME,
+    EndTime			DATETIME,
+    RoomNumber		VARCHAR(15),
+    DeptName 		VARCHAR(15),
+    PRIMARY KEY(PatientID, StartTime),
+    FOREIGN KEY(PatientID) REFERENCES Patient(PatientID),
+    FOREIGN KEY(DoctorID) REFERENCES Doctor(DoctorID) ON DELETE SET NULL,
+    FOREIGN KEY(RoomNumber,DeptName) REFERENCES Room(RoomNumber,DeptName)
+    );
+    
+## POPULATION SCRIPTS ## 
 
 -- Populate Wing
 INSERT INTO Wing (WingName) VALUES
@@ -277,6 +403,4 @@ INSERT INTO Surgery (PatientID, DoctorID, StartTime,Endtime,RoomNumber,DeptName)
 ('P023', 'D002', '2025-05-25 09:00:00','2025-05-26 09:00:00','703','Emergency'),
 ('P025', 'D008', '2025-06-01 16:00:00','2025-06-01 20:00:00','201','Neurology');
 
-
-SELECT * FROM Room
 
